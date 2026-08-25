@@ -10,6 +10,7 @@ Open `index.html` in a browser. Use the sidebar to move between the Today, Leade
 
 - Add quests from the button or quick-add field
 - Add, edit, and remove subtasks as individual steps in the quest dialog
+- Schedule quests for future days and add optional deadlines
 - Complete quests and individual substeps
 - Gamerscore and daily progress update immediately
 - Achievement and streak dashboard visuals

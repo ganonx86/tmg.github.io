@@ -1,11 +1,14 @@
 const tasks = [
-  { id: 1, title: 'Plan the week ahead', points: 40, label: 'Personal', subtasks: [{ text: 'Review calendar', done: true }, { text: 'Pick 3 priorities', done: true }, { text: 'Block focus time', done: false }], done: false },
-  { id: 2, title: 'Ship the new landing page', points: 75, label: 'Work', subtasks: [{ text: 'Review final copy', done: true }, { text: 'Push to production', done: false }], done: false },
-  { id: 3, title: '30 minute morning run', points: 20, label: 'Health', subtasks: [], done: true },
-  { id: 4, title: 'Read 10 pages of a book', points: 20, label: 'Learning', subtasks: [], done: true },
-  { id: 5, title: 'Inbox zero', points: 40, label: 'Work', subtasks: [], done: false },
-  { id: 6, title: 'Call Mum', points: 20, label: 'Personal', subtasks: [], done: false }
+  { id: 1, title: 'Plan the week ahead', points: 40, label: 'Personal', scheduledDate: '2026-08-25', deadline: '2026-08-25', subtasks: [{ text: 'Review calendar', done: true }, { text: 'Pick 3 priorities', done: true }, { text: 'Block focus time', done: false }], done: false },
+  { id: 2, title: 'Ship the new landing page', points: 75, label: 'Work', scheduledDate: '2026-08-25', deadline: '2026-08-28', subtasks: [{ text: 'Review final copy', done: true }, { text: 'Push to production', done: false }], done: false },
+  { id: 3, title: '30 minute morning run', points: 20, label: 'Health', scheduledDate: '2026-08-25', deadline: '2026-08-25', subtasks: [], done: true },
+  { id: 4, title: 'Read 10 pages of a book', points: 20, label: 'Learning', scheduledDate: '2026-08-25', deadline: '2026-08-25', subtasks: [], done: true },
+  { id: 5, title: 'Inbox zero', points: 40, label: 'Work', scheduledDate: '2026-08-26', deadline: '2026-08-27', subtasks: [], done: false },
+  { id: 6, title: 'Call Mum', points: 20, label: 'Personal', scheduledDate: '2026-08-26', deadline: '2026-08-26', subtasks: [], done: false }
 ];
+const today = new Date();
+const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+let selectedDate = localDate;
 const list = document.querySelector('#taskList');
 const progressText = document.querySelector('#progressText');
 const dayProgress = document.querySelector('#dayProgress');
@@ -53,11 +56,12 @@ function showCompletionFeedback(title, points, isSubtask) {
 }
 function renderTasks() {
   tasks.forEach(task => { task.points = calculatePoints(task.subtasks.length); });
-  list.innerHTML = tasks.map(task => `<article class="task ${task.done ? 'completed' : ''}"><div class="task-main"><input class="check" type="checkbox" ${task.done ? 'checked' : ''} ${task.subtasks.length && !task.subtasks.every(step => step.done) ? 'disabled' : ''} data-task="${task.id}" aria-label="Complete ${task.title}"><div class="task-copy"><span class="task-title">${task.title}</span><div class="task-meta"><span class="task-points">✦ ${task.points} GS</span><span>${task.label}</span>${task.subtasks.length ? `<span>${task.subtasks.filter(step => step.done).length}/${task.subtasks.length} steps</span>` : ''}</div></div><button class="task-menu" aria-label="More options for ${task.title}">•••</button></div>${task.subtasks.length ? `<div class="subtasks">${task.subtasks.map((step, index) => `<label class="subtask"><input type="checkbox" data-task="${task.id}" data-step="${index}" ${step.done ? 'checked' : ''}> <span>${step.text}</span></label>`).join('')}</div>` : ''}</article>`).join('');
-  const completed = tasks.filter(task => task.done).length;
-  progressText.textContent = `${completed} of ${tasks.length} completed`;
-  dayProgress.style.width = `${(completed / tasks.length) * 100}%`;
-  const earnedToday = tasks.filter(task => task.done).reduce((sum, task) => sum + task.points, 0);
+  const visibleTasks = tasks.filter(task => (task.scheduledDate || localDate) === selectedDate);
+  list.innerHTML = visibleTasks.length ? visibleTasks.map(task => `<article class="task ${task.done ? 'completed' : ''}"><div class="task-main"><input class="check" type="checkbox" ${task.done ? 'checked' : ''} ${task.subtasks.length && !task.subtasks.every(step => step.done) ? 'disabled' : ''} data-task="${task.id}" aria-label="Complete ${task.title}"><div class="task-copy"><span class="task-title">${task.title}</span><div class="task-meta"><span class="task-points">✦ ${task.points} GS</span><span>${task.label}</span>${task.deadline ? `<span class="deadline ${task.deadline < selectedDate ? 'overdue' : ''}">Due ${task.deadline}</span>` : ''}${task.subtasks.length ? `<span>${task.subtasks.filter(step => step.done).length}/${task.subtasks.length} steps</span>` : ''}</div></div><button class="task-menu" aria-label="More options for ${task.title}">•••</button></div>${task.subtasks.length ? `<div class="subtasks">${task.subtasks.map((step, index) => `<label class="subtask"><input type="checkbox" data-task="${task.id}" data-step="${index}" ${step.done ? 'checked' : ''}> <span>${step.text}</span></label>`).join('')}</div>` : ''}</article>`).join('') : '<p class="empty-day">No quests scheduled for this day. Create one and give it a deadline.</p>';
+  const completed = visibleTasks.filter(task => task.done).length;
+  progressText.textContent = `${completed} of ${visibleTasks.length} completed`;
+  dayProgress.style.width = visibleTasks.length ? `${(completed / visibleTasks.length) * 100}%` : '0%';
+  const earnedToday = visibleTasks.filter(task => task.done).reduce((sum, task) => sum + task.points, 0);
   todayPoints.textContent = earnedToday;
   gamerscore.textContent = (1200 + earnedToday).toLocaleString();
 }
@@ -82,6 +86,7 @@ const modalEyebrow = document.querySelector('#modalEyebrow');
 const modalHeading = document.querySelector('#modalHeading');
 const saveTaskBtn = document.querySelector('#saveTaskBtn');
 const deleteTaskBtn = document.querySelector('#deleteTaskBtn');
+const dateChip = document.querySelector('#dateChip');
 const addSubtaskBtn = document.querySelector('#addSubtaskBtn');
 const subtaskDraftList = document.querySelector('#subtaskDraftList');
 let editingTaskId = null;
@@ -95,6 +100,8 @@ function openModal(task = null) {
   saveTaskBtn.innerHTML = task ? 'Save changes <span>→</span>' : 'Add quest <span>→</span>';
   deleteTaskBtn.hidden = !task;
   form.title.value = task ? task.title : '';
+  form.scheduledDate.value = task ? task.scheduledDate : selectedDate;
+  form.deadline.value = task ? task.deadline || '' : selectedDate;
   draftSubtasks = task ? task.subtasks.map(step => ({ ...step })) : [];
   renderSubtaskEditor();
   modal.hidden = false;
@@ -138,9 +145,11 @@ form.addEventListener('submit', event => {
   if (editingTaskId) {
     const task = tasks.find(item => item.id === editingTaskId);
     task.title = data.get('title');
+    task.scheduledDate = data.get('scheduledDate');
+    task.deadline = data.get('deadline');
     task.subtasks = subtasks;
     task.done = task.subtasks.length ? task.subtasks.every(step => step.done) : task.done;
-  } else tasks.unshift({ id: Date.now(), title: data.get('title'), points: calculatePoints(subtasks.length), label: 'New quest', subtasks, done: false });
+  } else tasks.unshift({ id: Date.now(), title: data.get('title'), points: calculatePoints(subtasks.length), label: 'New quest', scheduledDate: data.get('scheduledDate'), deadline: data.get('deadline'), subtasks, done: false });
   renderTasks();
   form.reset();
   modal.hidden = true;
@@ -148,6 +157,8 @@ form.addEventListener('submit', event => {
 const taskInput = document.querySelector('#taskInput');
 document.querySelector('#quickAddBtn').addEventListener('click', () => { const title = taskInput.value.trim(); if (!title) return; tasks.unshift({ id: Date.now(), title, points: 20, label: 'New quest', subtasks: [], done: false }); taskInput.value = ''; renderTasks(); });
 taskInput.addEventListener('keydown', event => { if (event.key === 'Enter') document.querySelector('#quickAddBtn').click(); });
+dateChip.value = selectedDate;
+dateChip.addEventListener('change', () => { selectedDate = dateChip.value || localDate; renderTasks(); });
 const todayView = document.querySelector('#today');
 const leaderboardView = document.querySelector('#leaderboard');
 const achievementsView = document.querySelector('#achievements');
